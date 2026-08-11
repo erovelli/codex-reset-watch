@@ -1,0 +1,15 @@
+{
+  "name": "Codex Reset Watch",
+  "short_name": "Reset Watch",
+  "description": "Receive local Codex reset alerts with Web Push.",
+  "id": "./",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#06112a",
+  "theme_color": "#071735",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+  ]
+}

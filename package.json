@@ -1,0 +1,55 @@
+{
+  "name": "codex-reset-watch",
+  "version": "0.2.0",
+  "description": "Watch local Codex quota windows and notify when an unexpected reset occurs.",
+  "type": "module",
+  "bin": {
+    "codex-reset-watch": "dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "packaging/homebrew"
+  ],
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "build:web": "node scripts/build-web.mjs",
+    "check:web": "node --check web/app.js && node --check web/sw.js",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src test scripts",
+    "test": "node --import tsx --test test/**/*.test.ts",
+    "test:coverage": "node --import tsx --test --experimental-test-coverage test/**/*.test.ts",
+    "prepack": "npm run build"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "keywords": [
+    "codex",
+    "cli",
+    "rate-limit",
+    "sms",
+    "textbelt",
+    "web-push",
+    "ios"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/erovelli/codex-reset-watch.git"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.33.0",
+    "@types/node": "^22.17.0",
+    "@types/web-push": "^3.6.4",
+    "esbuild": "^0.25.8",
+    "eslint": "^9.33.0",
+    "tsx": "^4.20.3",
+    "typescript": "^5.9.2",
+    "typescript-eslint": "^8.39.1"
+  },
+  "dependencies": {
+    "web-push": "^3.6.7"
+  }
+}
