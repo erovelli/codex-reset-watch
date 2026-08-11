@@ -39,11 +39,12 @@ function setStatus(message, error = false) {
 async function enableNotifications() {
   try {
     enableButton.disabled = true;
-    if (!window.isSecureContext || !("serviceWorker" in navigator) || !("PushManager" in window)) {
-      throw new Error("This browser does not support secure Web Push.");
-    }
+    if (!window.isSecureContext) throw new Error("This page must be opened over HTTPS.");
     if (!standalone()) {
-      throw new Error("First add this page to your Home Screen, then open the installed app.");
+      throw new Error("This button works only in the installed Home Screen app. In Safari, tap Share, choose Add to Home Screen, then open the new Reset Watch icon.");
+    }
+    if (!("serviceWorker" in navigator) || !("PushManager" in window) || !("Notification" in window)) {
+      throw new Error("This iOS version does not support Home Screen Web Push. iOS or iPadOS 16.4 or newer is required.");
     }
     const key = publicKeyFromPage();
     if (!key) {
@@ -74,7 +75,9 @@ async function enableNotifications() {
     setStatus("Device subscription created.");
     pairingPanel.scrollIntoView({ behavior: "smooth", block: "start" });
   } catch (error) {
-    const denied = Notification.permission === "denied" ? " Notifications are blocked in iOS Settings." : "";
+    const denied = "Notification" in window && Notification.permission === "denied"
+      ? " Notifications are blocked in iOS Settings."
+      : "";
     setStatus(`${error instanceof Error ? error.message : String(error)}${denied}`, true);
   } finally {
     enableButton.disabled = false;
