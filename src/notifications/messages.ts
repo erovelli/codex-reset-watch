@@ -9,13 +9,13 @@ function duration(seconds: number): string {
   return `${minutes}m`;
 }
 
-export function buildResetMessage(event: ResetEvent, includeSmsOptOut = true): string {
+export function buildResetMessage(event: ResetEvent): string {
   const label = Math.abs(event.windowDurationMins - 10_080) <= 120
     ? "WEEKLY"
     : event.windowKind.toUpperCase().slice(0, 16);
   const peak = Math.round(event.peakUsedPercent);
   if (event.kind === "unexpected") {
-    return `Codex Reset Watch: ${label} unexpected reset. Peak observed use ${peak}%. Reset ${duration(event.earlyBySeconds ?? 0)} early.${includeSmsOptOut ? " Reply STOP to unsubscribe." : ""}`;
+    return `Codex Reset Watch: ${label} unexpected reset. Peak observed use ${peak}%. Reset ${duration(event.earlyBySeconds ?? 0)} early.`;
   }
-  return `Codex Reset Watch: ${label} scheduled reset. Peak observed use ${peak}%.${includeSmsOptOut ? " Reply STOP to unsubscribe." : ""}`;
+  return `Codex Reset Watch: ${label} scheduled reset. Peak observed use ${peak}%.`;
 }

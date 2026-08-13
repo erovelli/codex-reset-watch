@@ -1,36 +1,14 @@
 import type { MonitorConfig, MonitorState, RateLimitWindow, UsageSnapshot } from "../types.js";
 import { evaluateWindow, isWeeklyWindow } from "../detection/detector.js";
-import { normalizePhone, describeWindow } from "./format.js";
+import { describeWindow } from "./format.js";
 import { Prompt } from "./prompt.js";
 
 export interface ChosenSettings {
-  phone: string;
   pollingIntervalMins: number;
   gracePeriodMins: number;
   notifyUnexpected: boolean;
   notifyScheduled: boolean;
   monitoredWindowKeys: string[];
-  acceptedSmsTermsAt: number;
-}
-
-export function explainSms(): void {
-  console.log(`
-SMS behavior
-  Codex Reset Watch uses Textbelt's free hosted HTTPS endpoint and public "textbelt" key.
-  Textbelt currently permits one free SMS per day; no paid key or credits are needed.
-  That third-party policy can change, and delivery is best effort.
-  Scheduled reset texts are off by default because one could consume the day's free SMS and
-  prevent a later unexpected-reset alert. Only notify a phone you own/control or have explicit
-  permission to notify. Alerts identify Codex Reset Watch and say "Reply STOP to unsubscribe."
-  Textbelt handles STOP replies; only the recipient can opt back in by replying START.
-`);
-}
-
-async function phonePrompt(prompt: Prompt, existing?: string): Promise<string> {
-  while (true) {
-    const answer = await prompt.ask("Phone number (E.164 preferred)", existing);
-    try { return normalizePhone(answer); } catch (error) { console.log((error as Error).message); }
-  }
 }
 
 async function numberPrompt(prompt: Prompt, label: string, current: number, min: number, max: number): Promise<number> {
@@ -58,20 +36,14 @@ async function chooseWindows(prompt: Prompt, windows: RateLimitWindow[], selecte
   }
 }
 
-export async function installChoices(prompt: Prompt): Promise<{ phone: string; customize: boolean; acceptedSmsTermsAt: number }> {
-  explainSms();
-  if (!await prompt.confirm("I understand and have permission to notify this number", false)) {
-    throw new Error("SMS terms were not acknowledged; installation cancelled");
-  }
-  const phone = await phonePrompt(prompt);
+export async function installChoices(prompt: Prompt): Promise<{ customize: boolean }> {
   const customize = await prompt.choose("Settings", ["Use recommended defaults", "Customize settings"], 0) === 1;
-  return { phone, customize, acceptedSmsTermsAt: Math.floor(Date.now() / 1000) };
+  return { customize };
 }
 
 export async function settingsFromSnapshot(
   prompt: Prompt,
   snapshot: UsageSnapshot,
-  base: { phone: string; acceptedSmsTermsAt: number },
   customize: boolean,
   existing?: MonitorConfig
 ): Promise<ChosenSettings> {
@@ -81,7 +53,6 @@ export async function settingsFromSnapshot(
   }
   if (!customize) {
     return {
-      ...base,
       pollingIntervalMins: 30,
       gracePeriodMins: 60,
       notifyUnexpected: true,
@@ -93,30 +64,14 @@ export async function settingsFromSnapshot(
   const pollingIntervalMins = await numberPrompt(prompt, "Polling interval (minutes)", existing?.pollingIntervalMins ?? 30, 5, 1440);
   if (pollingIntervalMins > 120) console.log("Warning: long polling intervals make early-reset classification less reliable.");
   const gracePeriodMins = await numberPrompt(prompt, "Scheduled-reset grace period (minutes)", existing?.gracePeriodMins ?? 60, 0, 1440);
-  const channel = existing?.provider === "web-push" ? "notification" : "SMS";
-  const notifyUnexpected = await prompt.confirm(`Send unexpected-reset ${channel}`, existing?.notifyUnexpected ?? true);
-  const notifyScheduled = await prompt.confirm(`Send scheduled-reset ${channel}`, existing?.notifyScheduled ?? false);
-  if (notifyScheduled && existing?.provider !== "web-push") {
-    console.log("Warning: a scheduled reset text may consume Textbelt's one free message for that day and prevent an unexpected-reset alert later the same day.");
-  }
-  return { ...base, monitoredWindowKeys, pollingIntervalMins, gracePeriodMins, notifyUnexpected, notifyScheduled };
+  const notifyUnexpected = await prompt.confirm("Send unexpected-reset notification", existing?.notifyUnexpected ?? true);
+  const notifyScheduled = await prompt.confirm("Send scheduled-reset notification", existing?.notifyScheduled ?? false);
+  return { monitoredWindowKeys, pollingIntervalMins, gracePeriodMins, notifyUnexpected, notifyScheduled };
 }
 
 export async function configureChoices(prompt: Prompt, snapshot: UsageSnapshot, existing: MonitorConfig): Promise<ChosenSettings> {
-  let phone = existing.phone;
-  if (existing.provider === "web-push") {
-    console.log("\nNotification provider: iOS Web Push (paired device retained).\nRun `codex-reset-watch setup-web-push` to pair a different iPhone.\n");
-  } else {
-    explainSms();
-    phone = await phonePrompt(prompt, existing.phone);
-  }
-  return settingsFromSnapshot(
-    prompt,
-    snapshot,
-    { phone, acceptedSmsTermsAt: existing.acceptedSmsTermsAt },
-    true,
-    existing
-  );
+  console.log("\nNotification provider: iOS Web Push (paired device retained).\nRun `codex-reset-watch setup-web-push` to pair a different device.\n");
+  return settingsFromSnapshot(prompt, snapshot, true, existing);
 }
 
 export function baselineState(snapshot: UsageSnapshot, monitored: string[], existing?: MonitorState): MonitorState {

@@ -1,6 +1,6 @@
 {
   "name": "codex-reset-watch",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Watch local Codex quota windows and notify when an unexpected reset occurs.",
   "type": "module",
   "bin": {
@@ -29,8 +29,6 @@
     "codex",
     "cli",
     "rate-limit",
-    "sms",
-    "textbelt",
     "web-push",
     "ios"
   ],

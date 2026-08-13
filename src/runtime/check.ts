@@ -2,7 +2,7 @@ import type {
   MonitorConfig,
   MonitorState,
   NotificationProvider,
-  Recipient,
+  NotificationRecipient,
   ResetEvent,
   UsageSource
 } from "../types.js";
@@ -16,7 +16,7 @@ import type { Logger } from "../utils/logger.js";
 export interface CheckDependencies {
   source: UsageSource;
   provider: NotificationProvider;
-  recipients: Recipient[];
+  recipients: NotificationRecipient[];
   state: MonitorState;
   statePath: string;
   lockPath: string;
@@ -81,7 +81,7 @@ export async function runCheck(config: MonitorConfig, dependencies: CheckDepende
       await dependencies.logger.log("info", `notification attempt via ${dependencies.provider.id}: event=${event.id}`);
       const result = await sendWithRetry(
         dependencies.provider,
-        { id: event.id, message: buildResetMessage(event, config.provider === "textbelt-free") },
+        { id: event.id, message: buildResetMessage(event) },
         dependencies.recipients,
         dependencies.retryOptions
       );

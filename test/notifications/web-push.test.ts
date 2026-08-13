@@ -29,7 +29,7 @@ describe("iOS Web Push provider", () => {
       assert.equal(options.vapidDetails.privateKey, "private-key");
       return { statusCode: 201, body: "", headers: { "apns-id": "push-123" } };
     }));
-    const result = await provider.send({ id: "reset-1", message: "Unexpected weekly reset" }, [{ webPushSubscription: subscription }]);
+    const result = await provider.send({ id: "reset-1", message: "Unexpected weekly reset" }, [{ channel: "web-push", subscription }]);
     assert.equal(result.status, "sent");
     assert.equal(result.providerMessageId, "push-123");
     assert.deepEqual(JSON.parse(payload), {
@@ -44,7 +44,7 @@ describe("iOS Web Push provider", () => {
     const provider = new IosWebPushProvider(config, client(async () => {
       throw Object.assign(new Error("subscription gone"), { statusCode: 410 });
     }));
-    const result = await provider.send({ id: "reset-1", message: "test" }, [{ webPushSubscription: subscription }]);
+    const result = await provider.send({ id: "reset-1", message: "test" }, [{ channel: "web-push", subscription }]);
     assert.equal(result.status, "failed");
     assert.match(result.error ?? "", /setup-web-push again/);
   });
@@ -53,7 +53,7 @@ describe("iOS Web Push provider", () => {
     const provider = new IosWebPushProvider(config, client(async () => {
       throw Object.assign(new Error("unavailable"), { statusCode: 503 });
     }));
-    await assert.rejects(() => provider.send({ id: "reset-1", message: "test" }, [{ webPushSubscription: subscription }]));
+    await assert.rejects(() => provider.send({ id: "reset-1", message: "test" }, [{ channel: "web-push", subscription }]));
     assert.equal(provider.classifyFailure({ statusCode: 503 }), "transient");
   });
 });
