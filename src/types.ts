@@ -30,8 +30,7 @@ export type NotificationStatus =
   | "sent"
   | "not-requested"
   | "sending"
-  | "failed"
-  | "quota-exhausted";
+  | "failed";
 
 export interface ResetEventRecord {
   id: string;
@@ -81,10 +80,14 @@ export interface WebPushConfig {
   subscription: WebPushSubscription;
 }
 
-export interface Recipient {
-  phone?: string;
-  webPushSubscription?: WebPushSubscription;
+export interface WebPushRecipient {
+  channel: "web-push";
+  subscription: WebPushSubscription;
 }
+
+// Add future delivery targets (for example email or SMS) to this union. The
+// detector and retry policy intentionally depend only on this boundary.
+export type NotificationRecipient = WebPushRecipient;
 
 export interface Notification {
   id: string;
@@ -94,7 +97,7 @@ export interface Notification {
 export type RetryDisposition = "transient" | "permanent";
 
 export interface NotificationResult {
-  status: "sent" | "failed" | "quota-exhausted";
+  status: "sent" | "failed";
   providerMessageId?: string;
   error?: string;
   retryable?: boolean;
@@ -102,25 +105,23 @@ export interface NotificationResult {
 
 export interface NotificationProvider {
   readonly id: string;
-  send(notification: Notification, recipients: Recipient[]): Promise<NotificationResult>;
+  send(notification: Notification, recipients: NotificationRecipient[]): Promise<NotificationResult>;
   classifyFailure(error: unknown): RetryDisposition;
 }
 
 export interface MonitorConfig {
-  schemaVersion: 1;
-  phone: string;
+  schemaVersion: 2;
   pollingIntervalMins: number;
   gracePeriodMins: number;
   notifyUnexpected: boolean;
   notifyScheduled: boolean;
-  provider: "textbelt-free" | "web-push";
+  provider: "web-push";
   monitoredWindowKeys: string[];
   codexPath: string;
   nodePath: string;
   installedVersion: string;
-  acceptedSmsTermsAt: number;
   schedulerId: string;
-  webPush?: WebPushConfig;
+  webPush: WebPushConfig;
 }
 
 export interface MonitorState {

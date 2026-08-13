@@ -4,22 +4,27 @@ import { sendWithRetry } from "../../src/notifications/retry.js";
 import type { NotificationProvider } from "../../src/types.js";
 
 describe("notification retry policy", () => {
-  it("does not retry quota exhaustion", async () => {
+  const subscription = {
+    endpoint: "https://web.push.apple.com/example",
+    keys: { p256dh: "long-enough-p256dh-value", auth: "long-auth-value" }
+  };
+
+  it("does not retry a permanent provider failure", async () => {
     let calls = 0;
     const provider: NotificationProvider = {
       id: "fake",
       async send() {
         calls += 1;
-        return { status: "quota-exhausted", error: "daily quota exhausted" };
+        return { status: "failed", error: "subscription expired" };
       },
       classifyFailure: () => "permanent"
     };
-    const result = await sendWithRetry(provider, { id: "event", message: "test" }, [{ phone: "+15551234567" }], {
+    const result = await sendWithRetry(provider, { id: "event", message: "test" }, [{ channel: "web-push", subscription }], {
       delaysMs: [1, 2],
       sleep: async () => undefined,
       random: () => 0
     });
-    assert.equal(result.status, "quota-exhausted");
+    assert.equal(result.status, "failed");
     assert.equal(calls, 1);
   });
 
@@ -36,7 +41,7 @@ describe("notification retry policy", () => {
       },
       classifyFailure: () => "transient"
     };
-    const result = await sendWithRetry(provider, { id: "event", message: "test" }, [{ phone: "+15551234567" }], {
+    const result = await sendWithRetry(provider, { id: "event", message: "test" }, [{ channel: "web-push", subscription }], {
       delaysMs: [30, 60, 120],
       sleep: async (ms) => { slept.push(ms); },
       random: () => 0,

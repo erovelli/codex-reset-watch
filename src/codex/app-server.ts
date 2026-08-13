@@ -2,6 +2,7 @@ import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
 import { createInterface } from "node:readline";
 import type { AccountStatus, UsageSnapshot, UsageSource } from "../types.js";
 import { parseAccountResponse, parseRateLimitsResponse } from "./parser.js";
+import { APP_VERSION } from "../version.js";
 
 interface RpcResponse {
   id?: number;
@@ -84,7 +85,7 @@ class AppServerConnection {
 
   async initialize(): Promise<void> {
     await this.request("initialize", {
-      clientInfo: { name: "codex_reset_watch", title: "Codex Reset Watch", version: "0.1.0" }
+      clientInfo: { name: "codex_reset_watch", title: "Codex Reset Watch", version: APP_VERSION }
     });
     this.notify("initialized");
   }

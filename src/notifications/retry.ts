@@ -2,7 +2,7 @@ import type {
   Notification,
   NotificationProvider,
   NotificationResult,
-  Recipient
+  NotificationRecipient
 } from "../types.js";
 
 export interface RetryOptions {
@@ -25,7 +25,7 @@ const defaultSleep = async (milliseconds: number): Promise<void> =>
 export async function sendWithRetry(
   provider: NotificationProvider,
   notification: Notification,
-  recipients: Recipient[],
+  recipients: NotificationRecipient[],
   options: RetryOptions = {}
 ): Promise<NotificationResult> {
   const delays = options.delaysMs ?? defaultDelays;

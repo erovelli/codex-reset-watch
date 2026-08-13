@@ -3,7 +3,7 @@ import type {
   Notification,
   NotificationProvider,
   NotificationResult,
-  Recipient,
+  NotificationRecipient,
   RetryDisposition,
   WebPushConfig,
   WebPushSubscription
@@ -49,10 +49,11 @@ export class IosWebPushProvider implements NotificationProvider {
     return "transient";
   }
 
-  async send(notification: Notification, recipients: Recipient[]): Promise<NotificationResult> {
+  async send(notification: Notification, recipients: NotificationRecipient[]): Promise<NotificationResult> {
     if (recipients.length === 0) return { status: "failed", error: "No Web Push recipient configured" };
     if (recipients.length > 1) return { status: "failed", error: "Web Push v1 supports one subscribed device" };
-    const subscription = recipients[0]?.webPushSubscription;
+    const recipient = recipients[0];
+    const subscription = recipient?.channel === "web-push" ? recipient.subscription : undefined;
     if (!subscription) return { status: "failed", error: "The iPhone Web Push subscription is missing" };
     const payload = JSON.stringify({
       title: "Codex Reset Watch",

@@ -20,7 +20,7 @@ function snapshot(usedPercent: number, resetsAt: number, observedAt: number): Us
 }
 
 describe("monitoring cycle", () => {
-  it("tracks windows independently and never retries a persisted quota-exhausted event", async () => {
+  it("tracks windows independently and never resends a persisted failed event", async () => {
     const directory = await mkdtemp(join(tmpdir(), "crw-check-"));
     const snapshots = [
       snapshot(90, now + 3 * 86_400, now),
@@ -34,29 +34,37 @@ describe("monitoring cycle", () => {
     let sends = 0;
     const provider: NotificationProvider = {
       id: "fake",
-      async send() { sends += 1; return { status: "quota-exhausted", error: "daily quota" }; },
+      async send() { sends += 1; return { status: "failed", error: "subscription expired" }; },
       classifyFailure: () => "permanent"
     };
     const config: MonitorConfig = {
-      schemaVersion: 1,
-      phone: "+15551234567",
+      schemaVersion: 2,
       pollingIntervalMins: 30,
       gracePeriodMins: 60,
       notifyUnexpected: true,
       notifyScheduled: false,
-      provider: "textbelt-free",
+      provider: "web-push",
       monitoredWindowKeys: [key],
       codexPath: "/mock/codex",
       nodePath: process.execPath,
       installedVersion: "test",
-      acceptedSmsTermsAt: now,
-      schedulerId: "test"
+      schedulerId: "test",
+      webPush: {
+        setupUrl: "https://example.com/",
+        vapidSubject: "https://example.com",
+        vapidPublicKey: "public",
+        vapidPrivateKey: "private",
+        subscription: {
+          endpoint: "https://web.push.apple.com/example",
+          keys: { p256dh: "long-enough-p256dh-value", auth: "long-auth-value" }
+        }
+      }
     };
     let state: MonitorState = { schemaVersion: 1, windows: {} };
     const base = {
       source,
       provider,
-      recipients: [{ phone: config.phone }],
+      recipients: [{ channel: "web-push" as const, subscription: config.webPush.subscription }],
       statePath: join(directory, "state.json"),
       lockPath: join(directory, "check.lock"),
       logger: new Logger(join(directory, "monitor.log")),
@@ -66,7 +74,7 @@ describe("monitoring cycle", () => {
     assert.equal(sends, 0);
     state = await runCheck(config, { ...base, state });
     assert.equal(state.windows[key]?.lastResetEvent?.kind, "unexpected");
-    assert.equal(state.windows[key]?.lastResetEvent?.notificationStatus, "quota-exhausted");
+    assert.equal(state.windows[key]?.lastResetEvent?.notificationStatus, "failed");
     state = await runCheck(config, { ...base, state });
     assert.equal(sends, 1);
   });

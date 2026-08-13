@@ -21,5 +21,19 @@ describe("Web Push pairing code", () => {
     assert.throws(() => decodeSubscriptionCode("not-a-subscription"), /invalid or incomplete/);
     const incomplete = Buffer.from(JSON.stringify({ endpoint: "https://example.com" })).toString("base64url");
     assert.throws(() => decodeSubscriptionCode(incomplete), /encryption keys/);
+    assert.throws(() => decodeSubscriptionCode("a".repeat(32_769)), /invalid or incomplete/);
+  });
+
+  it("rejects unsafe endpoints and malformed encryption keys", () => {
+    const unsafe = Buffer.from(JSON.stringify({
+      ...subscription,
+      endpoint: "https://user:password@example.com/push"
+    })).toString("base64url");
+    assert.throws(() => decodeSubscriptionCode(unsafe), /endpoint/);
+    const malformedKeys = Buffer.from(JSON.stringify({
+      ...subscription,
+      keys: { ...subscription.keys, auth: "not valid!" }
+    })).toString("base64url");
+    assert.throws(() => decodeSubscriptionCode(malformedKeys), /keys are invalid/);
   });
 });
