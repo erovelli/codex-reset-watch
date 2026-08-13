@@ -10,7 +10,10 @@ const copyStatus = document.querySelector("#copy-status");
 function publicKeyFromPage() {
   const fragment = new URLSearchParams(location.hash.slice(1));
   const fromLink = fragment.get("vapid");
-  if (fromLink) localStorage.setItem("codex-reset-watch-vapid", fromLink);
+  if (fromLink) {
+    localStorage.setItem("codex-reset-watch-vapid", fromLink);
+    history.replaceState(null, "", `${location.pathname}${location.search}`);
+  }
   return fromLink || localStorage.getItem("codex-reset-watch-vapid") || publicKeyInput.value.trim();
 }
 
