@@ -19,9 +19,10 @@ import { findExecutable, runCommand } from "../utils/process.js";
 import { APP_VERSION } from "../version.js";
 import { describeWindow, localTime } from "./format.js";
 import { Prompt } from "./prompt.js";
+import { parseOptions, requireNoOptions } from "./options.js";
 import { baselineState, configureChoices, installChoices, settingsFromSnapshot } from "./wizard.js";
 
-const DEFAULT_WEB_PUSH_SETUP_URL = "https://erovelli.github.io/codex-reset-watch/";
+const DEFAULT_WEB_PUSH_SETUP_URL = "https://erovel.li/codex-reset-watch/";
 const paths = getAppPaths();
 
 function help(): void {
@@ -34,7 +35,8 @@ Commands:
   configure            Edit monitoring settings interactively
   status               Show scheduler, account, windows, and notification state
   check                Run one foreground monitoring cycle
-  setup-web-push       Pair an iPhone Home Screen app and switch to Web Push
+  setup-web-push [--url HTTPS_URL]
+                       Pair an iPhone Home Screen app and switch to Web Push
   test-push [--force]  Send an explicit Web Push test notification
   start | stop | restart
   uninstall            Remove scheduler/runtime, optionally retaining config/state
@@ -51,7 +53,7 @@ async function codexSource(prompt?: Prompt): Promise<{ path: string; source: Cod
   const requested = process.env.CODEX_RESET_WATCH_CODEX_PATH ?? "codex";
   const codexPath = await findExecutable(requested);
   if (!codexPath) {
-    throw new Error("Codex CLI is required but was not found. Install it with `npm install -g @openai/codex`, then run `codex login` and retry.");
+    throw new Error("Codex CLI is required but was not found. Install it from https://learn.chatgpt.com/docs/codex/cli, then run `codex login` and retry.");
   }
   const source = new CodexAppServerSource(codexPath);
   let account = await source.readAccount();
@@ -89,7 +91,8 @@ async function printSuccess(config: MonitorConfig, snapshot: UsageSnapshot, dryR
 
 async function installCommand(args: string[]): Promise<void> {
   const prompt = new Prompt();
-  const dryRun = args.includes("--dry-run");
+  const options = parseOptions(args, { "--dry-run": "boolean" });
+  const dryRun = options.has("--dry-run");
   try {
     const existing = await loadConfig(paths.configFile);
     if (existing && !dryRun) {
@@ -213,11 +216,6 @@ async function statusCommand(): Promise<void> {
   console.log(`Last notification: ${latest ? `${latest.event.notificationStatus}${latest.event.notificationError ? ` - ${latest.event.notificationError}` : ""}` : "none"}`);
 }
 
-function argumentValue(args: string[], name: string): string | undefined {
-  const index = args.indexOf(name);
-  return index >= 0 ? args[index + 1] : undefined;
-}
-
 function validatedSetupUrl(value: string): string {
   try {
     const url = new URL(value);
@@ -263,9 +261,11 @@ async function pairWebPush(prompt: Prompt, requestedUrl: string, existing?: WebP
 }
 
 async function setupWebPushCommand(args: string[]): Promise<void> {
+  const options = parseOptions(args, { "--url": "value" });
   const config = await loadConfigForWebPushSetup(paths.configFile);
   if (!config) throw new Error("Codex Reset Watch is not installed. Run `npx codex-reset-watch install`.");
-  const requestedUrl = argumentValue(args, "--url") ?? config.webPush?.setupUrl ?? DEFAULT_WEB_PUSH_SETUP_URL;
+  const requestedOption = options.get("--url");
+  const requestedUrl = typeof requestedOption === "string" ? requestedOption : config.webPush?.setupUrl ?? DEFAULT_WEB_PUSH_SETUP_URL;
   const prompt = new Prompt();
   try {
     const webPush = await pairWebPush(prompt, requestedUrl, config.webPush);
@@ -318,8 +318,9 @@ async function sendTestPush(config: MonitorConfig): Promise<void> {
 }
 
 async function testPushCommand(args: string[]): Promise<void> {
+  const options = parseOptions(args, { "--force": "boolean" });
   const config = await requireConfig();
-  if (!args.includes("--force")) {
+  if (!options.has("--force")) {
     const prompt = new Prompt();
     try {
       if (!await prompt.confirm("Send a test push to the paired iPhone", true)) {
@@ -370,15 +371,15 @@ async function main(): Promise<void> {
   const [command = "help", ...args] = process.argv.slice(2);
   switch (command) {
     case "install": await installCommand(args); break;
-    case "configure": await configureCommand(); break;
-    case "status": await statusCommand(); break;
-    case "check": await checkCommand(); break;
+    case "configure": requireNoOptions(args); await configureCommand(); break;
+    case "status": requireNoOptions(args); await statusCommand(); break;
+    case "check": requireNoOptions(args); await checkCommand(); break;
     case "setup-web-push": await setupWebPushCommand(args); break;
     case "test-push": await testPushCommand(args); break;
-    case "start": case "stop": case "restart": await schedulerCommand(command); break;
-    case "uninstall": await uninstallCommand(); break;
-    case "help": case "--help": case "-h": help(); break;
-    case "--version": case "-v": console.log(APP_VERSION); break;
+    case "start": case "stop": case "restart": requireNoOptions(args); await schedulerCommand(command); break;
+    case "uninstall": requireNoOptions(args); await uninstallCommand(); break;
+    case "help": case "--help": case "-h": requireNoOptions(args); help(); break;
+    case "--version": case "-v": requireNoOptions(args); console.log(APP_VERSION); break;
     default: help(); throw new Error(`Unknown command: ${command}`);
   }
 }

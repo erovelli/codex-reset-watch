@@ -2,15 +2,9 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { decodeSubscriptionCode, encodeSubscriptionCode } from "../../src/notifications/web-push-pairing.js";
 import type { WebPushSubscription } from "../../src/types.js";
+import { webPushFixture } from "../fixtures/web-push.js";
 
-const subscription: WebPushSubscription = {
-  endpoint: "https://web.push.apple.com/Q-example",
-  expirationTime: null,
-  keys: {
-    p256dh: "BNcRdreALRFXTkOOUHK1EtK8gN6Lyt6Sl9A-example",
-    auth: "tBHItJI5svbpez7KI4CCXg"
-  }
-};
+const subscription: WebPushSubscription = webPushFixture.subscription;
 
 describe("Web Push pairing code", () => {
   it("round-trips an iOS PushSubscription without changing it", () => {

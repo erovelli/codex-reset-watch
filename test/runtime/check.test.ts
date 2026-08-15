@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { describe, it } from "node:test";
 import { runCheck } from "../../src/runtime/check.js";
 import { Logger } from "../../src/utils/logger.js";
+import { loadState } from "../../src/state/store.js";
 import type { MonitorConfig, MonitorState, NotificationProvider, UsageSnapshot, UsageSource } from "../../src/types.js";
 
 const now = 1_800_000_000;
@@ -77,5 +78,49 @@ describe("monitoring cycle", () => {
     assert.equal(state.windows[key]?.lastResetEvent?.notificationStatus, "failed");
     state = await runCheck(config, { ...base, state });
     assert.equal(sends, 1);
+  });
+
+  it("persists an actionable error when any check stage fails", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "crw-check-error-"));
+    const statePath = join(directory, "state.json");
+    const source: UsageSource = {
+      async read() { throw new Error("schema unavailable\nwith extra detail"); },
+      async readAccount() { return { authenticated: true }; }
+    };
+    const provider: NotificationProvider = {
+      id: "unused",
+      async send() { return { status: "sent" }; },
+      classifyFailure: () => "permanent"
+    };
+    const config = {
+      schemaVersion: 2,
+      pollingIntervalMins: 30,
+      gracePeriodMins: 60,
+      notifyUnexpected: true,
+      notifyScheduled: false,
+      provider: "web-push",
+      monitoredWindowKeys: [key],
+      codexPath: "/mock/codex",
+      nodePath: process.execPath,
+      installedVersion: "test",
+      schedulerId: "test",
+      webPush: {
+        setupUrl: "https://example.com/",
+        vapidSubject: "https://example.com",
+        vapidPublicKey: "public",
+        vapidPrivateKey: "private",
+        subscription: { endpoint: "https://example.com/push", keys: { p256dh: "key", auth: "auth" } }
+      }
+    } satisfies MonitorConfig;
+    await assert.rejects(() => runCheck(config, {
+      source,
+      provider,
+      recipients: [],
+      state: { schemaVersion: 1, windows: {} },
+      statePath,
+      lockPath: join(directory, "check.lock"),
+      logger: new Logger(join(directory, "monitor.log"))
+    }), /schema unavailable/);
+    assert.match((await loadState(statePath)).lastCheckError ?? "", /schema unavailable/);
   });
 });

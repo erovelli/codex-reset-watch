@@ -4,6 +4,14 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+function validBase64UrlBytes(value: string, expectedLength: number, firstByte?: number): boolean {
+  if (!/^[A-Za-z0-9_-]+$/.test(value)) return false;
+  const decoded = Buffer.from(value, "base64url");
+  return decoded.length === expectedLength
+    && decoded.toString("base64url") === value
+    && (firstByte === undefined || decoded[0] === firstByte);
+}
+
 export function validateWebPushSubscription(value: unknown): WebPushSubscription {
   if (!isRecord(value)) throw new Error("Web Push subscription must be an object");
   if (typeof value.endpoint !== "string" || value.endpoint.length > 4096) {
@@ -18,11 +26,7 @@ export function validateWebPushSubscription(value: unknown): WebPushSubscription
   if (!isRecord(value.keys) || typeof value.keys.p256dh !== "string" || typeof value.keys.auth !== "string") {
     throw new Error("Web Push subscription encryption keys are missing");
   }
-  const base64Url = /^[A-Za-z0-9_-]+$/;
-  if (
-    value.keys.p256dh.length < 20 || value.keys.p256dh.length > 512 || !base64Url.test(value.keys.p256dh)
-    || value.keys.auth.length < 8 || value.keys.auth.length > 256 || !base64Url.test(value.keys.auth)
-  ) {
+  if (!validBase64UrlBytes(value.keys.p256dh, 65, 4) || !validBase64UrlBytes(value.keys.auth, 16)) {
     throw new Error("Web Push subscription encryption keys are invalid");
   }
   const expirationTime = value.expirationTime;

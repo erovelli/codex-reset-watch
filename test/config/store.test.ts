@@ -4,21 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, it } from "node:test";
 import { loadConfig, loadConfigForWebPushSetup, saveConfig, validateConfig } from "../../src/config/store.js";
-
-const webPush = {
-  setupUrl: "https://example.com/reset-watch/",
-  vapidSubject: "https://example.com",
-  vapidPublicKey: "B".repeat(87),
-  vapidPrivateKey: "p".repeat(43),
-  subscription: {
-    endpoint: "https://web.push.apple.com/example",
-    expirationTime: null,
-    keys: {
-      p256dh: "BNcRdreALRFXTkOOUHK1EtK8gN6Lyt6Sl9A-example",
-      auth: "tBHItJI5svbpez7KI4CCXg"
-    }
-  }
-};
+import { webPushFixture as webPush } from "../fixtures/web-push.js";
 
 const base = {
   schemaVersion: 2,

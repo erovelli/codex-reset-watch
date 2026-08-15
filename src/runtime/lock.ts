@@ -1,5 +1,6 @@
 import { open, readFile, stat, unlink } from "node:fs/promises";
 import { dirname } from "node:path";
+import { randomUUID } from "node:crypto";
 import { ensurePrivateDirectory } from "../state/json-store.js";
 
 export interface LockHandle {
@@ -13,7 +14,7 @@ async function ownerIsAlive(path: string): Promise<boolean | undefined> {
   } catch (error) {
     return (error as NodeJS.ErrnoException).code === "ENOENT" ? false : undefined;
   }
-  const pid = Number(contents.trim());
+  const pid = Number(contents.trim().split(/\s+/, 1)[0]);
   if (!Number.isSafeInteger(pid) || pid <= 0) return undefined;
   try {
     process.kill(pid, 0);
@@ -31,13 +32,26 @@ export async function acquireLock(path: string, staleAfterMs = 30 * 60_000): Pro
   for (let attempt = 0; attempt < 2; attempt += 1) {
     try {
       const handle = await open(path, "wx", 0o600);
-      await handle.writeFile(`${process.pid}\n`, "utf8");
-      await handle.close();
+      const contents = `${process.pid} ${randomUUID()}\n`;
+      try {
+        await handle.writeFile(contents, "utf8");
+        await handle.sync();
+      } catch (error) {
+        await unlink(path).catch(() => undefined);
+        throw error;
+      } finally {
+        await handle.close();
+      }
       let released = false;
       return {
         async release() {
           if (released) return;
           released = true;
+          const current = await readFile(path, "utf8").catch((error: NodeJS.ErrnoException) => {
+            if (error.code === "ENOENT") return undefined;
+            throw error;
+          });
+          if (current !== contents) return;
           await unlink(path).catch((error: NodeJS.ErrnoException) => {
             if (error.code !== "ENOENT") throw error;
           });
