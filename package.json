@@ -9,18 +9,25 @@
   "files": [
     "dist",
     "README.md",
+    "RELEASING.md",
+    "SECURITY.md",
     "LICENSE",
+    "THIRD_PARTY_LICENSES.txt",
     "packaging/homebrew"
   ],
   "scripts": {
     "build": "node scripts/build.mjs",
     "build:web": "node scripts/build-web.mjs",
     "check:web": "node --check web/app.js && node --check web/sw.js",
+    "check:version": "node scripts/check-version.mjs",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src test scripts",
     "test": "node --import tsx --test test/**/*.test.ts",
     "test:coverage": "node --import tsx --test --experimental-test-coverage test/**/*.test.ts",
-    "prepack": "npm run build"
+    "verify": "npm run lint && npm run typecheck && npm test && npm run check:web && npm run build && npm run build:web && npm run check:version",
+    "release:check": "npm run verify && npm audit --audit-level=high",
+    "prepack": "npm run build",
+    "prepublishOnly": "npm run release:check"
   },
   "engines": {
     "node": ">=22"
@@ -33,9 +40,26 @@
     "ios"
   ],
   "license": "MIT",
+  "homepage": "https://github.com/erovelli/codex-reset-watch#readme",
+  "bugs": {
+    "url": "https://github.com/erovelli/codex-reset-watch/issues"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/erovelli/codex-reset-watch.git"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "os": [
+    "darwin",
+    "linux"
+  ],
+  "allowScripts": {
+    "esbuild@0.25.12": true,
+    "esbuild@0.28.2": true,
+    "fsevents@2.3.3": true
   },
   "devDependencies": {
     "@eslint/js": "^9.33.0",
@@ -45,9 +69,7 @@
     "eslint": "^9.33.0",
     "tsx": "^4.20.3",
     "typescript": "^5.9.2",
-    "typescript-eslint": "^8.39.1"
-  },
-  "dependencies": {
+    "typescript-eslint": "^8.67.0",
     "web-push": "^3.6.7"
   }
 }
