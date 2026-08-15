@@ -9,6 +9,14 @@ export interface CommandResult {
   stderr: string;
 }
 
+const maxCapturedOutput = 1_000_000;
+
+function appendCaptured(current: string, chunk: Buffer): string {
+  const next = current + chunk.toString("utf8");
+  if (next.length <= maxCapturedOutput) return next;
+  return `[earlier output truncated]\n${next.slice(-maxCapturedOutput)}`;
+}
+
 export async function runCommand(command: string, args: string[], inherit = false): Promise<CommandResult> {
   return new Promise((resolve, reject) => {
     const child = spawn(command, args, {
@@ -18,8 +26,8 @@ export async function runCommand(command: string, args: string[], inherit = fals
     let stdout = "";
     let stderr = "";
     if (!inherit) {
-      child.stdout?.on("data", (chunk: Buffer) => { stdout += chunk.toString("utf8"); });
-      child.stderr?.on("data", (chunk: Buffer) => { stderr += chunk.toString("utf8"); });
+      child.stdout?.on("data", (chunk: Buffer) => { stdout = appendCaptured(stdout, chunk); });
+      child.stderr?.on("data", (chunk: Buffer) => { stderr = appendCaptured(stderr, chunk); });
     }
     child.on("error", reject);
     child.on("exit", (code) => resolve({ code: code ?? 1, stdout, stderr }));

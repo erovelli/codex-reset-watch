@@ -1,20 +1,28 @@
 import { homedir } from "node:os";
-import { join } from "node:path";
+import { isAbsolute, join } from "node:path";
 import { unlink } from "node:fs/promises";
 import type { Scheduler, SchedulerConfig, SchedulerStatus } from "../types.js";
 import { runCommand } from "../utils/process.js";
-import { atomicWriteText } from "./file-utils.js";
+import { assertSafeSchedulerValue, atomicWriteText } from "./file-utils.js";
 
 const serviceName = "codex-reset-watch.service";
 const timerName = "codex-reset-watch.timer";
 
-function systemdQuote(value: string): string {
-  return `"${value.replaceAll("\\", "\\\\").replaceAll('"', '\\"')}"`;
+export function systemdUserDirectory(env: NodeJS.ProcessEnv = process.env, userHome = homedir()): string {
+  const configHome = env.XDG_CONFIG_HOME && isAbsolute(env.XDG_CONFIG_HOME)
+    ? env.XDG_CONFIG_HOME
+    : join(userHome, ".config");
+  return join(configHome, "systemd", "user");
+}
+
+export function systemdQuote(value: string): string {
+  assertSafeSchedulerValue(value, "systemd path");
+  return `"${value.replaceAll("\\", "\\\\").replaceAll('"', '\\"').replaceAll("%", "%%")}"`;
 }
 
 export class LinuxSystemdScheduler implements Scheduler {
   readonly id = "systemd-user";
-  private readonly directory = join(process.env.XDG_CONFIG_HOME ?? join(homedir(), ".config"), "systemd", "user");
+  private readonly directory = systemdUserDirectory();
   private readonly servicePath = join(this.directory, serviceName);
   private readonly timerPath = join(this.directory, timerName);
 
@@ -24,6 +32,8 @@ export class LinuxSystemdScheduler implements Scheduler {
   }
 
   async install(config: SchedulerConfig): Promise<void> {
+    assertSafeSchedulerValue(config.nodePath, "Node path");
+    assertSafeSchedulerValue(config.runtimePath, "runtime path");
     const service = `[Unit]\nDescription=Check Codex rate-limit resets\n\n[Service]\nType=oneshot\nExecStart=${systemdQuote(config.nodePath)} ${systemdQuote(config.runtimePath)} check\n`;
     const timer = `[Unit]\nDescription=Periodically check Codex rate-limit resets\n\n[Timer]\nOnBootSec=1min\nOnUnitActiveSec=${config.pollingIntervalMins}min\nPersistent=true\nAccuracySec=1min\n\n[Install]\nWantedBy=timers.target\n`;
     await atomicWriteText(this.servicePath, service);
@@ -35,10 +45,17 @@ export class LinuxSystemdScheduler implements Scheduler {
   }
 
   async uninstall(): Promise<void> {
-    await runCommand("systemctl", ["--user", "disable", "--now", timerName]).catch(() => undefined);
-    await unlink(this.servicePath).catch(() => undefined);
-    await unlink(this.timerPath).catch(() => undefined);
-    await runCommand("systemctl", ["--user", "daemon-reload"]).catch(() => undefined);
+    const disable = await runCommand("systemctl", ["--user", "disable", "--now", timerName]);
+    if (disable.code !== 0 && !/not loaded|not found|does not exist/i.test(`${disable.stdout}${disable.stderr}`)) {
+      throw new Error(`Could not disable systemd user timer: ${disable.stderr.trim()}`);
+    }
+    for (const path of [this.servicePath, this.timerPath]) {
+      await unlink(path).catch((error: NodeJS.ErrnoException) => {
+        if (error.code !== "ENOENT") throw error;
+      });
+    }
+    const reload = await runCommand("systemctl", ["--user", "daemon-reload"]);
+    if (reload.code !== 0) throw new Error(`systemd user reload failed: ${reload.stderr.trim()}`);
   }
 
   async start(): Promise<void> {

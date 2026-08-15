@@ -12,7 +12,7 @@ This is an independent open-source utility, not an official OpenAI or Apple prod
 
 - macOS or Linux
 - Node.js 22 or newer (Node 22 and 24 LTS are supported)
-- the [Codex CLI](https://learn.chatgpt.com/docs/codex-cli) authenticated through ChatGPT (`codex login`)
+- the [Codex CLI](https://learn.chatgpt.com/docs/codex/cli) authenticated through ChatGPT (`codex login`)
 - iOS/iPadOS 16.4 or newer with the HTTPS setup app added to the Home Screen
 
 API-key billing limits are intentionally not supported. The monitor reads ChatGPT-managed Codex limits from the local [`codex app-server`](https://learn.chatgpt.com/docs/app-server) stdio protocol. It never starts a model turn.
@@ -37,20 +37,20 @@ During pairing, the command prints a personalized HTTPS setup link and guides yo
 1. Open the link in Safari on the iPhone.
 2. Use Share → **Add to Home Screen**.
 3. Open the installed Home Screen app and tap **Enable notifications**.
-4. Copy its one-time pairing code back into the terminal.
+4. Copy its pairing code back into the terminal.
 5. Accept the offered test push.
 
 Web Push has no per-message fee and does not require an Apple Developer membership. The static setup app never receives or stores the subscription on a server. It creates the browser subscription locally and gives it to you as a pairing code.
 
 The VAPID private key and device subscription stay in the local mode-0600 configuration file. Sending an alert makes one encrypted HTTPS Web Push request to the device's push service; no Codex credentials are included.
 
-The default setup URL is `https://erovelli.github.io/codex-reset-watch/`. The source is in [`web/`](web), and [the Pages workflow](.github/workflows/pages.yml) publishes that exact static directory. A fork or private deployment can pass its own HTTPS URL with:
+The default setup URL is `https://erovel.li/codex-reset-watch/`, the repository's canonical GitHub Pages domain. The source is in [`web/`](web), and [the Pages workflow](.github/workflows/pages.yml) publishes that exact static directory. A fork or private deployment can pass its own HTTPS URL with:
 
 ```bash
 codex-reset-watch setup-web-push --url https://example.com/path/
 ```
 
-Run `setup-web-push` at any time to replace an expired subscription or pair a different device. Installations created by versions that supported SMS can use the same command to migrate; saving the migrated configuration removes the legacy phone number and SMS-consent fields.
+Run `setup-web-push` at any time to replace an expired subscription or pair a different device. Treat a pairing code as private until it has been pasted into the CLI. Installations created by versions that supported SMS can use the same command to migrate; saving the migrated configuration removes the legacy phone number and SMS-consent fields.
 
 ## Commands
 
@@ -92,7 +92,7 @@ JSON config and state are atomically replaced after file and directory synchroni
 
 ## Troubleshooting
 
-- **Codex missing:** install with `npm install -g @openai/codex`, then run `codex login`.
+- **Codex missing:** follow the current [Codex CLI installation instructions](https://learn.chatgpt.com/docs/codex/cli), then run `codex login`.
 - **Wrong account type:** sign into Codex with ChatGPT; ordinary OpenAI API-key limits are not this tool's target.
 - **Check failures:** run `codex-reset-watch check`, then inspect `codex-reset-watch status` and the monitor log.
 - **No unexpected classification after downtime:** this is deliberate; a recent sample is required to minimize false positives.
@@ -114,6 +114,8 @@ npm test
 npm run build
 npm run build:web
 ```
+
+Release steps, required npm settings, and artifact verification are documented in [`RELEASING.md`](RELEASING.md). Security issues should follow [`SECURITY.md`](SECURITY.md), not a public issue.
 
 The core boundaries are:
 

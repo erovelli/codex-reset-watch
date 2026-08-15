@@ -25,6 +25,7 @@ class AppServerConnection {
     this.process.stderr.on("data", (chunk: Buffer) => {
       this.stderr = `${this.stderr}${chunk.toString("utf8")}`.slice(-4000);
     });
+    this.process.stdin.on("error", (error) => this.rejectAll(error));
     this.process.on("error", (error) => this.rejectAll(error));
     this.process.on("exit", (code, signal) => {
       if (this.pending.size > 0) {
@@ -54,14 +55,24 @@ class AppServerConnection {
   }
 
   private send(message: unknown): void {
-    this.process.stdin.write(`${JSON.stringify(message)}\n`);
+    if (this.process.stdin.destroyed || !this.process.stdin.writable) {
+      throw new Error("Codex App Server input stream is not writable");
+    }
+    this.process.stdin.write(`${JSON.stringify(message)}\n`, (error) => {
+      if (error) this.rejectAll(error);
+    });
   }
 
   async request(method: string, params?: unknown): Promise<unknown> {
     const id = this.nextId++;
     const result = new Promise<unknown>((resolve, reject) => {
       this.pending.set(id, { resolve, reject });
-      this.send({ method, id, ...(params === undefined ? {} : { params }) });
+      try {
+        this.send({ method, id, ...(params === undefined ? {} : { params }) });
+      } catch (error) {
+        this.pending.delete(id);
+        reject(error instanceof Error ? error : new Error(String(error)));
+      }
     });
     let timer: NodeJS.Timeout | undefined;
     try {

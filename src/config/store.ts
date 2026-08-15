@@ -13,12 +13,20 @@ function record(value: unknown, label: string): Record<string, unknown> {
   return value as Record<string, unknown>;
 }
 
-function requiredString(raw: Record<string, unknown>, field: string): string {
+function requiredString(raw: Record<string, unknown>, field: string, maximum = 4096): string {
   const value = raw[field];
-  if (typeof value !== "string" || value.length === 0) {
+  if (typeof value !== "string" || value.length === 0 || value.length > maximum) {
     throw new Error(`Configuration field ${field} is missing`);
   }
   return value;
+}
+
+function validBase64UrlBytes(value: string, expectedLength: number, firstByte?: number): boolean {
+  if (!/^[A-Za-z0-9_-]+$/.test(value)) return false;
+  const decoded = Buffer.from(value, "base64url");
+  return decoded.length === expectedLength
+    && decoded.toString("base64url") === value
+    && (firstByte === undefined || decoded[0] === firstByte);
 }
 
 function boundedInteger(raw: Record<string, unknown>, field: string, minimum: number, maximum: number): number {
@@ -33,8 +41,8 @@ function validateWebPush(value: unknown): WebPushConfig {
   const raw = record(value, "Web Push configuration");
   const setupUrl = requiredString(raw, "setupUrl");
   const vapidSubject = requiredString(raw, "vapidSubject");
-  const vapidPublicKey = requiredString(raw, "vapidPublicKey");
-  const vapidPrivateKey = requiredString(raw, "vapidPrivateKey");
+  const vapidPublicKey = requiredString(raw, "vapidPublicKey", 128);
+  const vapidPrivateKey = requiredString(raw, "vapidPrivateKey", 128);
   try {
     const setup = new URL(setupUrl);
     if (setup.protocol !== "https:" || setup.username || setup.password) throw new Error();
@@ -47,11 +55,10 @@ function validateWebPush(value: unknown): WebPushConfig {
   } catch {
     throw new Error("Web Push VAPID subject must be an HTTPS URL or mailto address");
   }
-  const base64Url = /^[A-Za-z0-9_-]+$/;
-  if (vapidPublicKey.length < 80 || vapidPublicKey.length > 128 || !base64Url.test(vapidPublicKey)) {
+  if (!validBase64UrlBytes(vapidPublicKey, 65, 4)) {
     throw new Error("Web Push VAPID public key is invalid");
   }
-  if (vapidPrivateKey.length < 40 || vapidPrivateKey.length > 128 || !base64Url.test(vapidPrivateKey)) {
+  if (!validBase64UrlBytes(vapidPrivateKey, 32)) {
     throw new Error("Web Push VAPID private key is invalid");
   }
   return {
@@ -65,7 +72,7 @@ function validateWebPush(value: unknown): WebPushConfig {
 
 function validateCommon(raw: Record<string, unknown>): WebPushSetupConfig {
   const monitored = raw.monitoredWindowKeys;
-  if (!Array.isArray(monitored) || monitored.length === 0 || monitored.some((key) => typeof key !== "string" || key.length === 0)) {
+  if (!Array.isArray(monitored) || monitored.length === 0 || monitored.length > 1000 || monitored.some((key) => typeof key !== "string" || key.length === 0 || key.length > 1024)) {
     throw new Error("Configuration monitoredWindowKeys must contain at least one non-empty key");
   }
   const monitoredWindowKeys = [...new Set(monitored as string[])];
@@ -83,8 +90,8 @@ function validateCommon(raw: Record<string, unknown>): WebPushSetupConfig {
     monitoredWindowKeys,
     codexPath: requiredString(raw, "codexPath"),
     nodePath: requiredString(raw, "nodePath"),
-    installedVersion: requiredString(raw, "installedVersion"),
-    schedulerId: requiredString(raw, "schedulerId"),
+    installedVersion: requiredString(raw, "installedVersion", 256),
+    schedulerId: requiredString(raw, "schedulerId", 256),
     ...(raw.webPush === undefined ? {} : { webPush: validateWebPush(raw.webPush) })
   };
 }

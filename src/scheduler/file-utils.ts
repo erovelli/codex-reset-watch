@@ -24,3 +24,14 @@ export async function atomicWriteText(path: string, content: string, mode = 0o60
 export function shellQuote(value: string): string {
   return `'${value.replaceAll("'", `'\\''`)}'`;
 }
+
+export function assertSafeSchedulerValue(value: string, label: string): void {
+  if (value.length === 0 || /[\0\r\n]/.test(value)) {
+    throw new Error(`${label} contains unsupported control characters`);
+  }
+}
+
+export function cronShellQuote(value: string, label: string): string {
+  assertSafeSchedulerValue(value, label);
+  return shellQuote(value).replaceAll("%", "\\%");
+}

@@ -1,5 +1,5 @@
 import { homedir } from "node:os";
-import { join } from "node:path";
+import { isAbsolute, join } from "node:path";
 
 export interface AppPaths {
   configDir: string;
@@ -11,6 +11,10 @@ export interface AppPaths {
   runtimeFile: string;
   lockFile: string;
   logFile: string;
+}
+
+function absoluteEnvironmentPath(value: string | undefined, fallback: string): string {
+  return value && isAbsolute(value) ? value : fallback;
 }
 
 export function getAppPaths(
@@ -29,9 +33,9 @@ export function getAppPaths(
     dataDir = join(root, "runtime");
     logDir = join(userHome, "Library", "Logs", "codex-reset-watch");
   } else {
-    configDir = join(env.XDG_CONFIG_HOME ?? join(userHome, ".config"), "codex-reset-watch");
-    stateDir = join(env.XDG_STATE_HOME ?? join(userHome, ".local", "state"), "codex-reset-watch");
-    dataDir = join(env.XDG_DATA_HOME ?? join(userHome, ".local", "share"), "codex-reset-watch");
+    configDir = join(absoluteEnvironmentPath(env.XDG_CONFIG_HOME, join(userHome, ".config")), "codex-reset-watch");
+    stateDir = join(absoluteEnvironmentPath(env.XDG_STATE_HOME, join(userHome, ".local", "state")), "codex-reset-watch");
+    dataDir = join(absoluteEnvironmentPath(env.XDG_DATA_HOME, join(userHome, ".local", "share")), "codex-reset-watch");
     logDir = join(stateDir, "logs");
   }
   return {
