@@ -1,9 +1,9 @@
 import { homedir } from "node:os";
 import { join } from "node:path";
-import { unlink } from "node:fs/promises";
+import { access, unlink } from "node:fs/promises";
 import type { Scheduler, SchedulerConfig, SchedulerStatus } from "../types.js";
 import { runCommand } from "../utils/process.js";
-import { atomicWriteText } from "./file-utils.js";
+import { assertSafeSchedulerValue, atomicWriteText } from "./file-utils.js";
 
 const label = "com.codex-reset-watch.monitor";
 
@@ -17,6 +17,9 @@ export class MacOsScheduler implements Scheduler {
   private readonly domain = `gui/${process.getuid?.() ?? 0}`;
 
   async install(config: SchedulerConfig): Promise<void> {
+    assertSafeSchedulerValue(config.nodePath, "Node path");
+    assertSafeSchedulerValue(config.runtimePath, "runtime path");
+    assertSafeSchedulerValue(config.logPath, "log path");
     const content = `<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
@@ -53,7 +56,16 @@ export class MacOsScheduler implements Scheduler {
   }
 
   async stop(): Promise<void> {
-    await runCommand("launchctl", ["bootout", this.domain, this.plistPath]).catch(() => undefined);
+    try {
+      await access(this.plistPath);
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === "ENOENT") return;
+      throw error;
+    }
+    const result = await runCommand("launchctl", ["bootout", this.domain, this.plistPath]);
+    if (result.code !== 0 && !/no such process|could not find|not loaded/i.test(`${result.stdout}${result.stderr}`)) {
+      throw new Error(`Could not stop LaunchAgent: ${result.stderr.trim()}`);
+    }
   }
 
   async restart(): Promise<void> {
