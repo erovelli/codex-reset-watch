@@ -20,8 +20,8 @@ export function validateWebPushSubscription(value: unknown): WebPushSubscription
   try {
     const endpoint = new URL(value.endpoint);
     if (endpoint.protocol !== "https:" || endpoint.username || endpoint.password) throw new Error();
-  } catch {
-    throw new Error("Web Push subscription endpoint is missing or invalid");
+  } catch (error) {
+    throw new Error("Web Push subscription endpoint is missing or invalid", { cause: error });
   }
   if (!isRecord(value.keys) || typeof value.keys.p256dh !== "string" || typeof value.keys.auth !== "string") {
     throw new Error("Web Push subscription encryption keys are missing");
@@ -54,6 +54,6 @@ export function decodeSubscriptionCode(code: string): WebPushSubscription {
     return validateWebPushSubscription(JSON.parse(decoded));
   } catch (error) {
     if (error instanceof Error && error.message.startsWith("Web Push")) throw error;
-    throw new Error("The iPhone pairing code is invalid or incomplete");
+    throw new Error("The iPhone pairing code is invalid or incomplete", { cause: error });
   }
 }

@@ -16,7 +16,9 @@ export async function readJsonFile<T>(path: string): Promise<T | undefined> {
     return JSON.parse(await readFile(path, "utf8")) as T;
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === "ENOENT") return undefined;
-    if (error instanceof SyntaxError) throw new Error(`Invalid JSON in ${path}: ${error.message}`);
+    if (error instanceof SyntaxError) {
+      throw new Error(`Invalid JSON in ${path}: ${error.message}`, { cause: error });
+    }
     throw error;
   }
 }

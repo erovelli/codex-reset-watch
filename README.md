@@ -8,6 +8,17 @@ npx codex-reset-watch install
 
 This is an independent open-source utility, not an official OpenAI or Apple product. Notifications are best effort; do not use it for emergencies.
 
+## Version 1.0
+
+Version 1.0 is the first stable release and establishes the supported CLI and configuration baseline:
+
+- macOS and Linux with Node.js 22 or 24
+- ChatGPT-authenticated Codex CLI rate limits read through the local App Server protocol
+- per-user launchd, systemd, or cron scheduling without a resident Node daemon
+- one paired iPhone or iPad Home Screen app using standards-based Web Push
+
+Existing Web Push configurations remain compatible. Installations that still contain legacy SMS settings must run `setup-web-push`; saving the new pairing removes the obsolete phone-number and consent fields. Notification permission is requested only after the user opens the installed Home Screen app and taps **Enable notifications**.
+
 ## Requirements
 
 - macOS or Linux
