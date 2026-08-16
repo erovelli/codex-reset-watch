@@ -76,7 +76,7 @@ describe("monitoring cycle", () => {
     state = await runCheck(config, { ...base, state });
     assert.equal(state.windows[key]?.lastResetEvent?.kind, "unexpected");
     assert.equal(state.windows[key]?.lastResetEvent?.notificationStatus, "failed");
-    state = await runCheck(config, { ...base, state });
+    await runCheck(config, { ...base, state });
     assert.equal(sends, 1);
   });
 
