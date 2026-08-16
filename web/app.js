@@ -6,6 +6,7 @@ const pairingPanel = document.querySelector("#pairing");
 const pairingCode = document.querySelector("#pairing-code");
 const copyButton = document.querySelector("#copy");
 const copyStatus = document.querySelector("#copy-status");
+const setupState = document.querySelector("#setup-state");
 
 function publicKeyFromPage() {
   const fragment = new URLSearchParams(location.hash.slice(1));
@@ -34,16 +35,22 @@ function standalone() {
   return window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
 }
 
+function isIosDevice() {
+  return /iPad|iPhone|iPod/.test(window.navigator.userAgent)
+    || (window.navigator.platform === "MacIntel" && window.navigator.maxTouchPoints > 1);
+}
+
 function setStatus(message, error = false) {
   statusNode.textContent = message;
   statusNode.classList.toggle("error", error);
+  if (error) setupState.textContent = "Needs attention";
 }
 
 async function enableNotifications() {
   try {
     enableButton.disabled = true;
     if (!window.isSecureContext) throw new Error("This page must be opened over HTTPS.");
-    if (!standalone()) {
+    if (isIosDevice() && !standalone()) {
       throw new Error("This button works only in the installed Home Screen app. In Safari, tap Share, choose Add to Home Screen, then open the new Reset Watch icon.");
     }
     if (!("serviceWorker" in navigator) || !("PushManager" in window) || !("Notification" in window)) {
@@ -55,6 +62,7 @@ async function enableNotifications() {
       throw new Error("Paste the public key shown by the CLI, then tap Enable again.");
     }
     localStorage.setItem("codex-reset-watch-vapid", key);
+    setupState.textContent = "Working";
     setStatus("Registering this device...");
     const registration = await navigator.serviceWorker.register("./sw.js", { scope: "./" });
     await navigator.serviceWorker.ready;
@@ -75,8 +83,13 @@ async function enableNotifications() {
     }
     pairingCode.value = encodePairingCode(subscription);
     pairingPanel.hidden = false;
-    setStatus("Device subscription created.");
-    pairingPanel.scrollIntoView({ behavior: "smooth", block: "start" });
+    setupState.textContent = "Ready";
+    enableButton.hidden = true;
+    setStatus("Notifications enabled on this device.");
+    pairingPanel.scrollIntoView({
+      behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
+      block: "start"
+    });
   } catch (error) {
     const denied = "Notification" in window && Notification.permission === "denied"
       ? " Notifications are blocked in iOS Settings."
@@ -90,6 +103,7 @@ async function enableNotifications() {
 async function copyCode() {
   try {
     await navigator.clipboard.writeText(pairingCode.value);
+    copyButton.textContent = "Copied";
     copyStatus.textContent = "Copied. Return to the terminal and paste it there.";
   } catch {
     pairingCode.focus();
@@ -98,7 +112,19 @@ async function copyCode() {
   }
 }
 
-if (!publicKeyFromPage()) keyPanel.hidden = false;
-setStatus(standalone() ? "Ready to request notification permission." : "Add this page to your Home Screen, then open the installed app.");
+const installed = standalone();
+const canSetUpHere = installed || !isIosDevice();
+if (!publicKeyFromPage() && canSetUpHere) keyPanel.hidden = false;
+if (canSetUpHere) {
+  setupState.textContent = "Step 3 of 3";
+  setStatus(installed
+    ? "Ready to request notification permission."
+    : "Desktop test mode: ready to request notification permission in this browser.");
+} else {
+  setupState.textContent = "Step 1 of 3";
+  enableButton.disabled = true;
+  enableButton.textContent = "Open from Home Screen to continue";
+  setStatus("Add this page to your Home Screen, then open the installed app.");
+}
 enableButton.addEventListener("click", enableNotifications);
 copyButton.addEventListener("click", copyCode);
