@@ -2,7 +2,12 @@
 
 ## Supported versions
 
-Until a stable 1.0 release, only the latest published version receives security fixes. Upgrade before reporting an issue that is already fixed in a newer release.
+| Version | Supported |
+| --- | --- |
+| 1.x | Yes |
+| Earlier versions | No |
+
+Only the latest published 1.x version receives security fixes. Upgrade before reporting an issue that is already fixed in a newer release.
 
 ## Reporting a vulnerability
 
