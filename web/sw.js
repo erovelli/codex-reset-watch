@@ -1,7 +1,7 @@
 self.addEventListener("push", event => {
   let payload = {};
   try { payload = event.data ? event.data.json() : {}; } catch { payload = { body: event.data?.text() }; }
-  const icon = new URL("icon-192.png", self.registration.scope).href;
+  const icon = new URL("icon-smiley-192.png", self.registration.scope).href;
   event.waitUntil(self.registration.showNotification(payload.title || "Codex Reset Watch", {
     body: payload.body || "A monitored Codex window changed.",
     tag: payload.tag || "codex-reset-watch",

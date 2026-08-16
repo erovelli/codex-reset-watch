@@ -18,7 +18,7 @@
   "scripts": {
     "build": "node scripts/build.mjs",
     "build:web": "node scripts/build-web.mjs",
-    "check:web": "node --check web/app.js && node --check web/sw.js",
+    "check:web": "node --check web/theme.js && node --check web/app.js && node --check web/sw.js",
     "check:version": "node scripts/check-version.mjs",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src test scripts",

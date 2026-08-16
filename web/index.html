@@ -5,54 +5,107 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="referrer" content="no-referrer">
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'none'; connect-src 'self'; form-action 'none'; img-src 'self'; manifest-src 'self'; object-src 'none'; script-src 'self'; style-src 'self'; worker-src 'self'">
-    <meta name="theme-color" content="#071735">
-    <meta name="description" content="Pair this iPhone with Codex Reset Watch using standards-based Web Push.">
+    <meta name="theme-color" content="#f3f0e6" data-light="#f3f0e6" data-dark="#0c1115">
+    <meta name="description" content="Pair an iPhone with Codex Reset Watch using Web Push.">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="Reset Watch">
+    <script src="theme.js"></script>
+    <link rel="icon" href="icon-smiley.svg" type="image/svg+xml" data-theme-favicon data-light="icon-smiley.svg" data-dark="icon-smiley-dark.svg">
+    <link rel="icon" href="icon-smiley-192.png" sizes="192x192" type="image/png" data-theme-favicon data-light="icon-smiley-192.png" data-dark="icon-smiley-dark-192.png">
     <link rel="manifest" href="manifest.webmanifest">
-    <link rel="apple-touch-icon" href="icon-192.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon-smiley.png">
     <link rel="stylesheet" href="styles.css">
-    <title>Codex Reset Watch</title>
+    <title>Pair Codex Reset Watch</title>
   </head>
   <body>
-    <main>
-      <header class="brand">
-        <img src="icon-192.png" alt="" width="72" height="72">
-        <div>
-          <p class="eyebrow">PRIVATE DEVICE PAIRING</p>
-          <h1>Codex Reset Watch</h1>
+    <a class="skip-link" href="#main-content">Skip to setup</a>
+
+    <div class="site-shell">
+      <header class="site-header">
+        <a class="wordmark" href="https://erovel.li/" aria-label="Evan Rovelli home">
+          <span class="wordmark-monogram" aria-hidden="true">ER</span>
+          <span class="wordmark-domain">erovel.li</span>
+        </a>
+        <div class="header-tools">
+          <p class="page-context">codex-reset-watch / pairing</p>
+          <button class="theme-control" type="button" aria-label="Switch theme" aria-pressed="false" data-theme-control hidden>
+            <span class="theme-control-icon" aria-hidden="true">◐</span>
+            <span data-theme-label>Theme</span>
+          </button>
         </div>
       </header>
 
-      <section class="card" aria-labelledby="setup-title">
-        <div class="step"><span>1</span><div><h2 id="setup-title">Add to your Home Screen</h2><p>In Safari, tap Share, then <strong>Add to Home Screen</strong>. Open the installed app before continuing.</p></div></div>
-        <div class="step"><span>2</span><div><h2>Enable notifications</h2><p>Permission is requested only when you tap the button.</p></div></div>
+      <main id="main-content">
+        <section class="page-intro" aria-labelledby="page-title">
+          <p class="eyebrow">iPhone Web Push</p>
+          <h1 id="page-title">Pair Reset Watch with this iPhone.</h1>
+          <p class="lead">Complete these steps in Safari. Your subscription stays between this device and the CLI.</p>
+        </section>
 
-        <div id="key-panel" class="key-panel" hidden>
-          <label for="public-key">Pairing public key</label>
-          <p>The setup link did not include a key. Paste the public key shown by the CLI.</p>
-          <input id="public-key" type="text" autocomplete="off" autocapitalize="none" spellcheck="false">
-        </div>
+        <section class="module" aria-labelledby="setup-title">
+          <header class="module-header">
+            <h2 id="setup-title">Setup</h2>
+            <span id="setup-state" class="module-state">3 steps</span>
+          </header>
 
-        <button id="enable" type="button">Enable notifications</button>
-        <p id="status" class="status" role="status" aria-live="polite">Waiting for setup.</p>
-      </section>
+          <ol class="steps">
+            <li>
+              <span class="step-number" aria-hidden="true">01</span>
+              <div class="step-copy">
+                <h3>Add this page to your Home Screen</h3>
+                <p>In Safari, tap <strong>Share</strong>, then <strong>Add to Home Screen</strong>.</p>
+              </div>
+            </li>
+            <li>
+              <span class="step-number" aria-hidden="true">02</span>
+              <div class="step-copy">
+                <h3>Open Reset Watch</h3>
+                <p>Leave Safari and open the new Reset Watch icon from your Home Screen.</p>
+              </div>
+            </li>
+            <li>
+              <span class="step-number" aria-hidden="true">03</span>
+              <div class="step-copy">
+                <h3>Enable notifications and copy the code</h3>
+                <p>Tap the button below, allow notifications, then paste the generated code into your terminal.</p>
+              </div>
+            </li>
+          </ol>
 
-      <section id="pairing" class="card pairing" hidden aria-labelledby="pairing-title">
-        <p class="success-mark" aria-hidden="true">Ready</p>
-        <h2 id="pairing-title">Notifications are enabled</h2>
-        <p>Copy this pairing code and paste it into the terminal. Treat it as private until setup is complete. It contains a push address and encryption keys, but no phone number or Codex credentials.</p>
-        <textarea id="pairing-code" readonly rows="5" aria-label="Pairing code"></textarea>
-        <button id="copy" class="secondary" type="button">Copy pairing code</button>
-        <p id="copy-status" class="status" role="status" aria-live="polite"></p>
-      </section>
+          <div class="setup-action">
+            <div id="key-panel" class="key-panel" hidden>
+              <label for="public-key">Pairing public key</label>
+              <p>The setup link did not include a key. Paste the public key shown by the CLI.</p>
+              <input id="public-key" type="text" autocomplete="off" autocapitalize="none" spellcheck="false">
+            </div>
 
-      <footer>
-        <p>No account, analytics, or server storage. This page creates the browser subscription locally.</p>
-        <a href="https://github.com/erovelli/codex-reset-watch">Source code</a>
+            <button id="enable" class="button button-primary" type="button">Enable notifications</button>
+            <p id="status" class="status" role="status" aria-live="polite">Checking this device…</p>
+          </div>
+
+          <div id="pairing" class="pairing" hidden aria-labelledby="pairing-title">
+            <div class="pairing-heading">
+              <p class="eyebrow">Ready</p>
+              <h3 id="pairing-title">Copy the pairing code</h3>
+              <p>Return to the terminal and paste it when prompted. Treat the code as private until setup is complete.</p>
+            </div>
+            <label class="sr-only" for="pairing-code">Pairing code</label>
+            <textarea id="pairing-code" readonly rows="5"></textarea>
+            <div class="pairing-actions">
+              <button id="copy" class="button" type="button">Copy pairing code</button>
+              <p id="copy-status" class="status" role="status" aria-live="polite"></p>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <footer class="site-footer">
+        <p>Requires iOS or iPadOS 16.4+. No account, analytics, or server storage.</p>
+        <a href="https://github.com/erovelli/codex-reset-watch">Source code <span aria-hidden="true">↗</span></a>
       </footer>
-    </main>
+    </div>
+
     <script src="app.js" defer></script>
   </body>
 </html>
