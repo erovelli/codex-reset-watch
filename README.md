@@ -1,7 +1,8 @@
 # codex-reset-watch
 
 ```bash
-npx codex-reset-watch install
+npm install --global codex-reset-watch
+codex-reset-watch install
 ```
 
 `codex-reset-watch` is a small TypeScript CLI that checks the rate-limit windows reported by your local Codex CLI and sends a Web Push notification when a weekly quota resets unexpectedly early. It uses a native per-user scheduler, so no Node daemon stays running.
@@ -32,6 +33,33 @@ API-key billing limits are intentionally not supported. The monitor reads ChatGP
 
 The installer verifies Codex, lets you select monitoring settings, guides you through Web Push pairing, records the first observation as a no-alert baseline, copies the bundled CLI to a stable per-user path, and enables a native scheduler immediately.
 
+### Global installation (recommended)
+
+Install the command once, then use it directly for setup and ongoing management:
+
+```bash
+npm install --global codex-reset-watch
+codex-reset-watch install
+```
+
+Afterward, commands such as `codex-reset-watch status`, `codex-reset-watch configure`, and `codex-reset-watch uninstall` are available from any directory. To update, install the latest global package and refresh the scheduler's stable runtime:
+
+```bash
+npm install --global codex-reset-watch@latest
+codex-reset-watch install
+```
+
+### Run without a global installation
+
+`npx` can run the CLI directly from npm without adding a permanent shell command:
+
+```bash
+npx --yes codex-reset-watch@latest install
+npx --yes codex-reset-watch@latest status
+```
+
+Use the same `npx --yes codex-reset-watch@latest <command>` form for later management commands. An `npx` setup still copies the bundled CLI to a stable per-user path for the background scheduler; only interactive shell commands continue to require the `npx` prefix.
+
 Recommended defaults are:
 
 - every reported weekly window is monitored
@@ -41,7 +69,7 @@ Recommended defaults are:
 - 60-minute scheduled-reset grace period
 - one paired Web Push device
 
-An `npx` install never leaves launchd, systemd, or cron pointing into npm's temporary cache. It captures the absolute Node and Codex paths and installs a stable bundled runtime under the normal per-user data directory.
+The installer never leaves launchd, systemd, or cron pointing into npm's package or temporary cache. It captures the absolute Node and Codex paths and installs a stable bundled runtime under the normal per-user data directory.
 
 During pairing, the command prints a personalized HTTPS setup link and guides you through these steps:
 
@@ -65,6 +93,8 @@ Run `setup-web-push` at any time to replace an expired subscription or pair a di
 
 ## Commands
 
+With the recommended global installation, use:
+
 ```text
 codex-reset-watch install
 codex-reset-watch configure
@@ -76,6 +106,12 @@ codex-reset-watch start
 codex-reset-watch stop
 codex-reset-watch restart
 codex-reset-watch uninstall
+```
+
+Without a global installation, prefix any command with `npx --yes codex-reset-watch@latest`, for example:
+
+```bash
+npx --yes codex-reset-watch@latest configure
 ```
 
 `configure` shows all currently discovered windows and preserves existing values as defaults. It retains the paired device; run `setup-web-push` to replace it. Intervals from 5 minutes through 24 hours are accepted; intervals above two hours carry a reliability warning. `status` shows the scheduler, provider/pairing state, account state, every discovered bucket, monitored usage and peak, reset times in the local timezone, and the latest reset/notification outcome.
